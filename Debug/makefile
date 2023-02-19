@@ -35,34 +35,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := LaserHarp_Testing
+BUILD_ARTIFACT_NAME := LaserHarp
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-LaserHarp_Testing.elf \
+LaserHarp.elf \
 
 MAP_FILES += \
-LaserHarp_Testing.map \
+LaserHarp.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-LaserHarp_Testing.list \
+LaserHarp.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: LaserHarp_Testing.elf secondary-outputs
+main-build: LaserHarp.elf secondary-outputs
 
 # Tool invocations
-LaserHarp_Testing.elf LaserHarp_Testing.map: $(OBJS) $(USER_OBJS) C:\Users\amonk\OneDrive\Projects\CubeIDE_Workspace\LaserHarp_Testing\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LaserHarp_Testing.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\amonk\OneDrive\Projects\CubeIDE_Workspace\LaserHarp_Testing\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LaserHarp_Testing.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LaserHarp.elf LaserHarp.map: $(OBJS) $(USER_OBJS) C:\Users\amonk\OneDrive\Projects\CubeIDE_Workspace\LaserHarp\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LaserHarp.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\amonk\OneDrive\Projects\CubeIDE_Workspace\LaserHarp\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LaserHarp.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -71,14 +71,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-LaserHarp_Testing.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LaserHarp_Testing.list"
+LaserHarp.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "LaserHarp.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) LaserHarp_Testing.elf LaserHarp_Testing.list LaserHarp_Testing.map default.size.stdout
+	-$(RM) LaserHarp.elf LaserHarp.list LaserHarp.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
