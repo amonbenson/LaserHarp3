@@ -59,7 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define SPI_PRESCALAR 8
+#define LA_TRANSFER_PRESCALAR 8
+#define LA_FADE_TICK_RATE 60
 
 /* USER CODE BEGIN Private defines */
 
