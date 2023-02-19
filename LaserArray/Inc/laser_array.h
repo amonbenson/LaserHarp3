@@ -2,8 +2,9 @@
 
 
 #include "main.h"
-#include "stdint.h"
 #include "stm32f1xx_hal.h"
+#include "cmsis_os.h"
+#include "stdint.h"
 
 
 #define LA_NUM_DIODES 32
@@ -39,6 +40,7 @@ typedef struct {
 
 typedef struct {
     LaserArray_Config_t config;
+    osSemaphoreId_t lock;
 
     LaserArray_Diode_t diodes[LA_NUM_DIODES];
     la_bitmask_t tx_data[LA_TX_DATA_LENGTH];

@@ -1,6 +1,8 @@
 #include "laser_array.h"
 #include "string.h"
 #include "stdio.h"
+#include "logging.h"
+
 
 /*
 Table generated using the following python snippet:
@@ -90,10 +92,14 @@ static la_brightness_pattern_t la_brightness_patterns[LA_NUM_BRIGHTNESS_LEVELS] 
 
 
 HAL_StatusTypeDef LaserArray_Init(LaserArray_t *la, const LaserArray_Config_t *config) {
-    HAL_StatusTypeDef ret;
-
     // store the config
     la->config = *config;
+
+    // create the semaphore lock
+    const osSemaphoreAttr_t lock_attr = {
+            .name = "la_lock"
+    };
+    la->lock = osSemaphoreNew(1, 1, &lock_attr);
 
     // clear the diode state and transfer data arrays
     memset(la->diodes, 0, sizeof(la->diodes));
@@ -103,46 +109,36 @@ HAL_StatusTypeDef LaserArray_Init(LaserArray_t *la, const LaserArray_Config_t *c
     __HAL_SPI_ENABLE(la->config.hspi);
 
     // setup timer dma to trigger the transmission of spi data
-    ret = HAL_DMA_Start_IT(la->config.htim_transfer->hdma[TIM_DMA_ID_UPDATE],
+    HAL_StatusTypeDef ret = HAL_DMA_Start_IT(la->config.htim_transfer->hdma[TIM_DMA_ID_UPDATE],
             (uint32_t) la->tx_data,
             (uint32_t) &la->config.hspi->Instance->DR,
             sizeof(la->tx_data) / sizeof(uint16_t));
-    if (ret != HAL_OK) {
-        return ret;
-    }
+    RETURN_ON_ERROR(ret,
+            "Failed to start dma stream");
 
     // enable dma on the timer
     __HAL_TIM_ENABLE_DMA(la->config.htim_transfer, TIM_DMA_UPDATE);
 
-    // start the timer with pwm enabled
-    ret = HAL_TIM_PWM_Start(la->config.htim_transfer, la->config.rclk_channel);
-    if (ret != HAL_OK) {
-        return ret;
-    }
+    // start the transfer timer with pwm enabled
+    RETURN_ON_ERROR(HAL_TIM_PWM_Start(la->config.htim_transfer, la->config.rclk_channel),
+            "Failed to start transfer timer in pwm mode");
 
     // start the fade update timer
-    ret = HAL_TIM_Base_Start_IT(la->config.htim_fade);
-    if (ret != HAL_OK) {
-        return ret;
-    }
+    RETURN_ON_ERROR(HAL_TIM_Base_Start_IT(la->config.htim_fade),
+            "Failed to start fade update timer");
 
     return HAL_OK;
 }
 
-HAL_StatusTypeDef LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness) {
-    // validate the diode index
-    if (diode_index >= LA_NUM_DIODES) {
-        return HAL_ERROR;
-    }
-
+static void _LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness) {
     // clamp the brightness
     if (brightness >= LA_NUM_BRIGHTNESS_LEVELS) {
         brightness = LA_NUM_BRIGHTNESS_LEVELS - 1;
     }
 
-    // skip if the brightness did not change
+    // return if the brightness did not change
     if (la->diodes[diode_index].current_brightness == brightness) {
-        return HAL_OK;
+        return;
     }
 
     // store the new brightness value
@@ -160,17 +156,32 @@ HAL_StatusTypeDef LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index
             la->tx_data[i] &= ~(UINT32_C(1) << diode_index);
         }
     }
+}
 
-    return HAL_OK;
+HAL_StatusTypeDef LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness) {
+    HAL_StatusTypeDef ret;
+    osSemaphoreAcquire(la->lock, osWaitForever);
+
+    // validate the diode index
+    GOTO_EXIT_ON_FALSE(diode_index < LA_NUM_DIODES, HAL_ERROR,
+            "Invalid diode index: %u", diode_index);
+
+    // call the internal update function
+    _LaserArray_SetBrightness(la, diode_index, brightness);
+
+    ret = HAL_OK;
+exit:
+    osSemaphoreRelease(la->lock);
+    return ret;
 }
 
 HAL_StatusTypeDef LaserArray_FadeBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness, uint32_t duration) {
     HAL_StatusTypeDef ret;
+    osSemaphoreAcquire(la->lock, osWaitForever);
 
     // validate the diode index
-    if (diode_index >= LA_NUM_DIODES) {
-        return HAL_ERROR;
-    }
+    GOTO_EXIT_ON_FALSE(diode_index < LA_NUM_DIODES, HAL_ERROR,
+            "Invalid diode index: %u", diode_index);
 
     // setup the diode_index reference
     LaserArray_Diode_t *diode = &la->diodes[diode_index];
@@ -181,18 +192,16 @@ HAL_StatusTypeDef LaserArray_FadeBrightness(LaserArray_t *la, uint8_t diode_inde
 
     // if duration is zero, set the brightness immediately
     if (diode->transition_duration == 0) {
-        ret = LaserArray_SetBrightness(la, diode_index, brightness);
-        if (ret != HAL_OK) {
-            return ret;
-        }
+        _LaserArray_SetBrightness(la, diode_index, brightness);
     }
 
-    return HAL_OK;
+    ret = HAL_OK;
+exit:
+    osSemaphoreRelease(la->lock);
+    return ret;
 }
 
 HAL_StatusTypeDef LaserArray_TIM_PeriodElapsedHandler(LaserArray_t *la, TIM_HandleTypeDef *htim) {
-    HAL_StatusTypeDef ret;
-
     // ignore callbacks addressed to other timers
     if (htim->Instance != la->config.htim_fade->Instance) {
         return HAL_OK;
@@ -213,10 +222,7 @@ HAL_StatusTypeDef LaserArray_TIM_PeriodElapsedHandler(LaserArray_t *la, TIM_Hand
         uint8_t brightness = source + range * (int32_t) (diode->transition_tick + 1) / (int32_t) diode->transition_duration;
 
         // set the new brightness value
-        ret = LaserArray_SetBrightness(la, diode_index, brightness);
-        if (ret != HAL_OK) {
-            return ret;
-        }
+        _LaserArray_SetBrightness(la, diode_index, brightness);
 
         // update the tick counter
         diode->transition_tick++;
