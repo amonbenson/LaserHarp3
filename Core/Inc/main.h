@@ -61,6 +61,7 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define LA_TRANSFER_PRESCALAR 8
 #define LA_FADE_TICK_RATE 60
+#define LOG_UART_HANDLE huart2
 
 /* USER CODE BEGIN Private defines */
 

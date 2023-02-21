@@ -17,7 +17,6 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <logging.h>
 #include "main.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
@@ -25,7 +24,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stdlib.h"
+#include "logging.h"
 #include "laser_array.h"
+#include "commander.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,11 +36,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#ifdef __GNUC__
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-    #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -66,6 +63,7 @@ const osThreadAttr_t defaultTask_attributes = {
 };
 /* USER CODE BEGIN PV */
 LaserArray_t la;
+Commander_t com;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -86,14 +84,16 @@ void StartDefaultTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// custom printf handler
-PUTCHAR_PROTOTYPE {
-    if (ch == '\n') {
-        uint8_t cr = '\r';
-        HAL_UART_Transmit(&huart2, &cr, 1, HAL_MAX_DELAY);
-    }
-    HAL_UART_Transmit(&huart2, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
-    return ch;
+LOG_SET_UART(&huart2);
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    // invoke the corresponding callback
+    Commander_UART_RxCpltHandler(&com, huart);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    // invoke the corresponding callback
+    Commander_UART_TxCpltHandler(&com, huart);
 }
 
 /* USER CODE END 0 */
@@ -484,7 +484,7 @@ void StartDefaultTask(void *argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
 
-  // init laser array
+  // init the laser array
   const LaserArray_Config_t la_config = {
           .hspi = &hspi1,
           .htim_transfer = &htim3,
@@ -493,6 +493,13 @@ void StartDefaultTask(void *argument)
   };
   HALT_ON_ERROR(LaserArray_Init(&la, &la_config),
           "Failed to initialize laser array");
+
+  // init the commander
+  const Commander_Config_t com_config = {
+          .huart = &huart1
+  };
+  HALT_ON_ERROR(Commander_Init(&com, &com_config),
+          "Failed to initialize commander");
 
   /* Infinite loop */
   for(;;)
