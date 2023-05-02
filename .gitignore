@@ -69,3 +69,7 @@ ctrlp.root
 #weird files
 COM*
 ~$*
+
+# build directories
+Debug/
+Release/

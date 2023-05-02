@@ -74,6 +74,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
   htim4.Instance = TIM4;
 
   /* Initialize TIMx peripheral as follow:
+
   + Period = [(TIM4CLK/1000) - 1]. to have a (1/1000) s time base.
   + Prescaler = (uwTimclock/1000000 - 1) to have a 1MHz counter clock.
   + ClockDivision = 0
@@ -107,6 +108,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
       }
     }
   }
+
   HAL_TIM_RegisterCallback(&htim4, HAL_TIM_PERIOD_ELAPSED_CB_ID, TimeBase_TIM_PeriodElapsedCallback);
 
  /* Return function status */
@@ -136,6 +138,7 @@ void HAL_ResumeTick(void)
   /* Enable TIM4 Update interrupt */
   __HAL_TIM_ENABLE_IT(&htim4, TIM_IT_UPDATE);
 }
+
  /**
   * @brief  Period elapsed callback in non blocking mode
   * @note   This function is called  when TIM6 interrupt took place, inside

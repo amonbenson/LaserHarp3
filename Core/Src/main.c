@@ -84,7 +84,20 @@ void StartDefaultTask(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-LOG_SET_UART(&huart2);
+// use huart2 for the printf by defining the putchar prototype
+#ifdef __GNUC__
+    #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+    #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+PUTCHAR_PROTOTYPE {
+    if (ch == '\n') {
+        uint8_t cr = '\r';
+        HAL_UART_Transmit(&huart2, &cr, 1, HAL_MAX_DELAY);
+    }
+    HAL_UART_Transmit(&huart2, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     // invoke the corresponding callback
@@ -169,7 +182,6 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-
   /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -459,12 +471,16 @@ static void MX_DMA_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -485,6 +501,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
 
   // init the laser array
+  LOG_INFO("Initializing LaserArray ...");
   const LaserArray_Config_t la_config = {
           .hspi = &hspi1,
           .htim_transfer = &htim3,
@@ -495,11 +512,14 @@ void StartDefaultTask(void *argument)
           "Failed to initialize laser array");
 
   // init the commander
+  LOG_INFO("Initializing Commander ...");
   const Commander_Config_t com_config = {
           .huart = &huart1
   };
   HALT_ON_ERROR(Commander_Init(&com, &com_config),
           "Failed to initialize commander");
+
+  LOG_INFO("Initialization Done.");
 
   /* Infinite loop */
   for(;;)
