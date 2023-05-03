@@ -519,7 +519,7 @@ void StartDefaultTask(void *argument)
   HALT_ON_ERROR(Commander_Init(&com, &com_config),
           "Failed to initialize commander");
 
-  LOG_INFO("Initialization Done.");
+  LOG_INFO("Initialization Complete.");
 
   /* Infinite loop */
   for(;;)
