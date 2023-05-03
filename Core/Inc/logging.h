@@ -2,11 +2,13 @@
 
 
 #if !defined(LOG_PRINTF) && defined(DEBUG)
+    // use default printf function from stdio
     #include "stdio.h"
     #define LOG_PRINTF(fmt, ...) printf(fmt, ## __VA_ARGS__)
 #endif
 
 #ifndef LOG_RETURN_TYPE
+    // use the internally defined return enum types
     typedef enum {
         RET_OK = 0x00U,
         RET_ERROR = 0x01U,
@@ -25,47 +27,57 @@
         RET_QUEUE_FULL = 0x0eU,
         __RET_LENGTH
     } ret_t;
-    static const char *__log_return_type_string[] = {
-        "Ok",
-        "Error",
-        "Busy",
-        "Timeout",
-        "Out of memory",
-        "Invalid argument",
-        "Invalid state",
-        "Invalid size",
-        "Not found",
-        "Not supported",
-        "Invalid response",
-        "Invalid crc",
-        "Invalid verion",
-        "Queue empty",
-        "Queue full"
-    };
 
     // set the return type and success code variables
     #define LOG_RETURN_TYPE ret_t
-    #define __LOG_RETURN_TYPE_CLAMP(ret) (((ret) < 0 || (ret) >= __RET_LENGTH) ? RET_ERROR : (ret))
-    #define LOG_RETURN_TYPE_STRING(ret) (__log_return_type_string[__LOG_RETURN_TYPE_CLAMP(ret)])
     #define LOG_SUCCESS_CODE RET_SUCCESS
+
+    // set the return type to string conversion macros
+    #ifdef DEBUG
+        static const char *__log_return_type_string[] = {
+            "Ok",
+            "Error",
+            "Busy",
+            "Timeout",
+            "Out of memory",
+            "Invalid argument",
+            "Invalid state",
+            "Invalid size",
+            "Not found",
+            "Not supported",
+            "Invalid response",
+            "Invalid crc",
+            "Invalid verion",
+            "Queue empty",
+            "Queue full"
+        };
+        #define __LOG_RETURN_TYPE_CLAMP(ret) (((ret) < 0 || (ret) >= __RET_LENGTH) ? RET_ERROR : (ret))
+        #define LOG_RETURN_TYPE_STRING(ret) (__log_return_type_string[__LOG_RETURN_TYPE_CLAMP(ret)])
+    #endif
 #endif
 
 #ifndef LOG_SUCCESS_CODE
+    // success code must be set if a custom return type is used
     #error "Please set the macro LOG_SUCCESS_CODE manually before including logging.h"
 #endif
 
-#ifndef LOG_RETURN_TYPE_STRING
+#if !defined(LOG_RETURN_TYPE_STRING) && defined(DEBUG)
+    // string conversion macro must be set if a cusstom return type is used
     #error "Please set the macro LOG_RETURN_TYPE_STRING(ret) manually before including logging.h"
 #endif
 
 #ifndef LOG_RETURN_VARIABLE
+    // set the name of the return code variable for the GOTO_ON_ macros
     #define LOG_RETURN_VARIABLE ret
 #endif
 
-#define LOG_HALT_PROCEDURE() do { \
-    __disable_irq(); \
-    while (1) {}; \
-} while (0)
+#ifndef LOG_HALT_PROCEDURE
+    // set the default procedure to be called when a HALT_ON_ macro triggers
+    #define LOG_HALT_PROCEDURE() do { \
+        __disable_irq(); \
+        while (1) {}; \
+    } while (0)
+#endif
 
 
 #ifndef unlikely
