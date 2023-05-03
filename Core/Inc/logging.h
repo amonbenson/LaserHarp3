@@ -1,9 +1,6 @@
 #pragma once
 
 
-extern const char *__log_ret_str[];
-
-
 #if !defined(LOG_PRINTF) && defined(DEBUG)
     #include "stdio.h"
     #define LOG_PRINTF(fmt, ...) printf(fmt, ## __VA_ARGS__)
@@ -21,35 +18,35 @@ extern const char *__log_ret_str[];
         RET_INVALID_SIZE = 0x07U,
         RET_NOT_FOUND = 0x08U,
         RET_NOT_SUPPORTED = 0x09U,
-        RET_INVALID_RESPONSE = 0x10U,
-        RET_INVALID_CRC = 0x1aU,
-        RET_INVALID_VERSION = 0x1bU,
-        RET_QUEUE_EMPTY = 0x1dU,
-        RET_QUEUE_FULL = 0x1cU,
+        RET_INVALID_RESPONSE = 0x0aU,
+        RET_INVALID_CRC = 0x0bU,
+        RET_INVALID_VERSION = 0x0cU,
+        RET_QUEUE_EMPTY = 0x0dU,
+        RET_QUEUE_FULL = 0x0eU,
         __RET_LENGTH
     } ret_t;
+    static const char *__log_return_type_string[] = {
+        "Ok",
+        "Error",
+        "Busy",
+        "Timeout",
+        "Out of memory",
+        "Invalid argument",
+        "Invalid state",
+        "Invalid size",
+        "Not found",
+        "Not supported",
+        "Invalid response",
+        "Invalid crc",
+        "Invalid verion",
+        "Queue empty",
+        "Queue full"
+    };
 
     // set the return type and success code variables
     #define LOG_RETURN_TYPE ret_t
-    #define __LOG_RETURN_TYPE_STRING(ret) (((const char *[]) { \
-        "Ok", \
-        "Error", \
-        "Busy", \
-        "Timeout", \
-        "Out of memory", \
-        "Invalid argument", \
-        "Invalid state", \
-        "Invalid size", \
-        "Not found", \
-        "Not supported", \
-        "Invalid response", \
-        "Invalid crc", \
-        "Invalid verion", \
-        "Queue empty", \
-        "Queue full" \
-    })[ret])
     #define __LOG_RETURN_TYPE_CLAMP(ret) (((ret) < 0 || (ret) >= __RET_LENGTH) ? RET_ERROR : (ret))
-    #define LOG_RETURN_TYPE_STRING(ret) __LOG_RETURN_TYPE_STRING(__LOG_RETURN_TYPE_CLAMP(ret))
+    #define LOG_RETURN_TYPE_STRING(ret) (__log_return_type_string[__LOG_RETURN_TYPE_CLAMP(ret)])
     #define LOG_SUCCESS_CODE RET_SUCCESS
 #endif
 
@@ -82,19 +79,19 @@ extern const char *__log_ret_str[];
 #define LOG_LEVEL_ERROR 3
 #define LOG_LEVEL_FATAL 4
 
-#define __LOG_LEVEL_STRING(level) (((const char *[]) { \
-    "DEBUG", \
-    "INFO ", \
-    "WARN ", \
-    "ERROR", \
-    "FATAL" \
-})[level])
 
 //#define __LOG_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define __LOG_FILENAME __FILE__
 
 #ifdef DEBUG
-    #define __LOG_MESSAGE(level, message, ...) LOG_PRINTF("%s %s:%d: " message "\n", __LOG_LEVEL_STRING(level), __LOG_FILENAME, __LINE__, ## __VA_ARGS__)
+    static const char *__log_level_string[] = {
+        "DEBUG",
+        "INFO ",
+        "WARN ",
+        "ERROR",
+        "FATAL"
+    };
+    #define __LOG_MESSAGE(level, message, ...) LOG_PRINTF("%s %s:%d: " message "\n", __log_level_string[level], __LOG_FILENAME, __LINE__, ## __VA_ARGS__)
 #else
     #define __LOG_MESSAGE(level, message, ...) ((void) 0)
 #endif
