@@ -62,6 +62,28 @@ void Error_Handler(void);
 #define LA_TRANSFER_PRESCALAR 8
 #define LA_FADE_TICK_RATE 60
 #define LOG_UART_HANDLE huart2
+#define DEBUG_TX_Pin GPIO_PIN_2
+#define DEBUG_TX_GPIO_Port GPIOA
+#define DEBUG_RX_Pin GPIO_PIN_3
+#define DEBUG_RX_GPIO_Port GPIOA
+#define LA_CLK_Pin GPIO_PIN_5
+#define LA_CLK_GPIO_Port GPIOA
+#define LA_DS_Pin GPIO_PIN_7
+#define LA_DS_GPIO_Port GPIOA
+#define LA_LATCH_Pin GPIO_PIN_1
+#define LA_LATCH_GPIO_Port GPIOB
+#define CMD_TX_Pin GPIO_PIN_10
+#define CMD_TX_GPIO_Port GPIOB
+#define CMD_RX_Pin GPIO_PIN_11
+#define CMD_RX_GPIO_Port GPIOB
+#define MIDI_TX_Pin GPIO_PIN_9
+#define MIDI_TX_GPIO_Port GPIOA
+#define MIDI_RX_Pin GPIO_PIN_10
+#define MIDI_RX_GPIO_Port GPIOA
+#define SWDIO_Pin GPIO_PIN_13
+#define SWDIO_GPIO_Port GPIOA
+#define SWCLK_Pin GPIO_PIN_14
+#define SWCLK_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
