@@ -54,6 +54,7 @@ DMA_HandleTypeDef hdma_tim3_ch4_up;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
+DMA_HandleTypeDef hdma_usart1_rx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -103,12 +104,14 @@ PUTCHAR_PROTOTYPE {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     // invoke the corresponding callback
+    LOG_DEBUG("RxCpltCallback");
     Commander_UART_RxCpltHandler(&com, huart);
 }
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    // invoke the corresponding callback
-    Commander_UART_TxCpltHandler(&com, huart);
+ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
+    LOG_INFO("Received packet of length %u", packet->length);
+
+    return RET_OK;
 }
 
 /* USER CODE END 0 */
@@ -266,7 +269,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_LSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -401,7 +404,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 31250;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -467,7 +470,7 @@ static void MX_USART3_UART_Init(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  huart3.Init.BaudRate = 115200;
+  huart3.Init.BaudRate = 31250;
   huart3.Init.WordLength = UART_WORDLENGTH_8B;
   huart3.Init.StopBits = UART_STOPBITS_1;
   huart3.Init.Parity = UART_PARITY_NONE;
@@ -497,6 +500,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -550,12 +556,14 @@ void StartDefaultTask(void *argument)
   // init the commander
   LOG_INFO("Initializing Commander ...");
   const Commander_Config_t com_config = {
-          .huart = &huart3
+          .huart = &huart1
   };
   HALT_ON_ERROR(Commander_Init(&com, &com_config),
           "Failed to initialize commander");
 
   LOG_INFO("Initialization Complete.");
+  uint8_t data[] = { 0x00, 0x01, 0xab };
+  Commander_Transmit(&com, (Commander_Packet_t *) data);
 
   /* Infinite loop */
   for(;;)

@@ -59,8 +59,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define LA_TRANSFER_PRESCALAR 8
-#define LA_FADE_TICK_RATE 60
+#define LA_TRANSFER_PRESCALAR 16
+#define LA_FADE_TICK_RATE 20
 #define LOG_UART_HANDLE huart2
 #define DEBUG_TX_Pin GPIO_PIN_2
 #define DEBUG_TX_GPIO_Port GPIOA
@@ -72,18 +72,18 @@ void Error_Handler(void);
 #define LA_DS_GPIO_Port GPIOA
 #define LA_LATCH_Pin GPIO_PIN_1
 #define LA_LATCH_GPIO_Port GPIOB
-#define CMD_TX_Pin GPIO_PIN_10
-#define CMD_TX_GPIO_Port GPIOB
-#define CMD_RX_Pin GPIO_PIN_11
-#define CMD_RX_GPIO_Port GPIOB
-#define MIDI_TX_Pin GPIO_PIN_9
-#define MIDI_TX_GPIO_Port GPIOA
-#define MIDI_RX_Pin GPIO_PIN_10
-#define MIDI_RX_GPIO_Port GPIOA
+#define MIDI_TX_Pin GPIO_PIN_10
+#define MIDI_TX_GPIO_Port GPIOB
+#define MIDI_RX_Pin GPIO_PIN_11
+#define MIDI_RX_GPIO_Port GPIOB
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
+#define COM_TX_Pin GPIO_PIN_6
+#define COM_TX_GPIO_Port GPIOB
+#define COM_RX_Pin GPIO_PIN_7
+#define COM_RX_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
