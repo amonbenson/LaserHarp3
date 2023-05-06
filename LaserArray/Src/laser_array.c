@@ -95,13 +95,6 @@ ret_t LaserArray_Init(LaserArray_t *la, const LaserArray_Config_t *config) {
     // store the config
     la->config = *config;
 
-    // create the semaphore lock
-    const osSemaphoreAttr_t lock_attr = {
-            .name = "laser_array_lock"
-    };
-    la->lock = osSemaphoreNew(1, 1, &lock_attr);
-    RETURN_ON_FALSE(la->lock, RET_OUT_OF_MEMORY, "Failed to create lock");
-
     // clear the diode state and transfer data arrays
     memset(la->diodes, 0, sizeof(la->diodes));
     memset(la->tx_data, 0, sizeof(la->tx_data));
@@ -163,29 +156,20 @@ static void _LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uin
 }
 
 ret_t LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness) {
-    ret_t ret;
-    osSemaphoreAcquire(la->lock, osWaitForever);
-
     // validate the diode index
-    GOTO_EXIT_ON_FALSE(diode_index < LA_NUM_DIODES,
+    RETURN_ON_FALSE(diode_index < LA_NUM_DIODES,
             RET_INVALID_ARG,
             "Invalid diode index: %u", diode_index);
 
     // call the internal update function
     _LaserArray_SetBrightness(la, diode_index, brightness);
 
-    ret = RET_OK;
-exit:
-    osSemaphoreRelease(la->lock);
-    return ret;
+    return RET_OK;
 }
 
 ret_t LaserArray_FadeBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t brightness, uint32_t duration) {
-    ret_t ret;
-    osSemaphoreAcquire(la->lock, osWaitForever);
-
     // validate the diode index
-    GOTO_EXIT_ON_FALSE(diode_index < LA_NUM_DIODES,
+    RETURN_ON_FALSE(diode_index < LA_NUM_DIODES,
             RET_INVALID_ARG,
             "Invalid diode index: %u", diode_index);
 
@@ -201,10 +185,7 @@ ret_t LaserArray_FadeBrightness(LaserArray_t *la, uint8_t diode_index, uint8_t b
         _LaserArray_SetBrightness(la, diode_index, brightness);
     }
 
-    ret = RET_OK;
-exit:
-    osSemaphoreRelease(la->lock);
-    return ret;
+    return RET_OK;
 }
 
 ret_t LaserArray_TIM_PeriodElapsedHandler(LaserArray_t *la, TIM_HandleTypeDef *htim) {
