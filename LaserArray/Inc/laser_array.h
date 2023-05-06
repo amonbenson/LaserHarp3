@@ -8,7 +8,7 @@
 #include "logging.h"
 
 
-#define LA_NUM_DIODES 32
+#define LA_NUM_DIODES 24
 #define LA_NUM_BRIGHTNESS_LEVELS 64
 #define LA_TX_DATA_LENGTH (LA_NUM_BRIGHTNESS_LEVELS - 1)
 

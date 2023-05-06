@@ -60,7 +60,7 @@ void Error_Handler(void);
 
 /* Private defines -----------------------------------------------------------*/
 #define LA_TRANSFER_PRESCALAR 16
-#define LA_FADE_TICK_RATE 20
+#define LA_FADE_TICK_RATE 30
 #define LOG_UART_HANDLE huart2
 #define DEBUG_TX_Pin GPIO_PIN_2
 #define DEBUG_TX_GPIO_Port GPIOA

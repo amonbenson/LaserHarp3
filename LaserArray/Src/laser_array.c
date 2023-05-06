@@ -148,13 +148,16 @@ static void _LaserArray_SetBrightness(LaserArray_t *la, uint8_t diode_index, uin
     // lookup the brightness pattern
     la_brightness_pattern_t pattern = la_brightness_patterns[brightness];
 
+    // get the shift amount by offsetting the diode index
+    uint8_t shift_amount = diode_index + sizeof(la_bitmask_t) * 8 - LA_NUM_DIODES;
+
     // iterate through each diode bitmask
     for (int i = 0; i < LA_TX_DATA_LENGTH; i++) {
         // either set or unset the corresponding bit depending on the pattern
         if ((pattern >> i) & UINT32_C(1)) {
-            la->tx_data[i] |= UINT32_C(1) << diode_index;
+            la->tx_data[i] |= UINT32_C(1) << shift_amount;
         } else {
-            la->tx_data[i] &= ~(UINT32_C(1) << diode_index);
+            la->tx_data[i] &= ~(UINT32_C(1) << shift_amount);
         }
     }
 }

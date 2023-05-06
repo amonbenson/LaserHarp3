@@ -54,7 +54,6 @@ DMA_HandleTypeDef hdma_tim3_ch4_up;
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
-DMA_HandleTypeDef hdma_usart1_rx;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -102,14 +101,45 @@ PUTCHAR_PROTOTYPE {
     return ch;
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-    // invoke the corresponding callback
-    LOG_DEBUG("RxCpltCallback");
-    Commander_UART_RxCpltHandler(&com, huart);
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
+    // invoke the comander event handler
+    Commander_UARTEx_RxEventHandler(&com, huart, Size);
+}
+
+static ret_t ValidateLength(uint8_t actual_length, uint8_t expected_length) {
+    if (actual_length != expected_length) {
+        LOG_ERROR("Invalid packet length %u (expected %u)", actual_length, expected_length);
+        return RET_INVALID_SIZE;
+    }
+
+    return RET_OK;
 }
 
 ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
-    LOG_INFO("Received packet of length %u", packet->length);
+    switch (packet->type) {
+        case COM_LED_SET_ALL:
+            // set the brightness of all leds to the same value
+            RETURN_ON_ERROR(ValidateLength(packet->length, 1), "");
+            for (uint8_t i = 0; i < LA_NUM_DIODES; i++) {
+                RETURN_ON_ERROR(LaserArray_SetBrightness(&la, i, packet->data[0]), "");
+            }
+            break;
+        case COM_LED_SET_EACH:
+            // set the brightness of each led one after another
+            RETURN_ON_ERROR(ValidateLength(packet->length, LA_NUM_DIODES), "");
+            for (uint8_t i = 0; i < LA_NUM_DIODES; i++) {
+                RETURN_ON_ERROR(LaserArray_SetBrightness(&la, i, packet->data[i]), "");
+            }
+            break;
+        case COM_LED_SET_SINGLE:
+            // set a single led's brightness
+            RETURN_ON_ERROR(ValidateLength(packet->length, 2), "");
+            RETURN_ON_ERROR(LaserArray_SetBrightness(&la, packet->data[0], packet->data[1]), "");
+            break;
+        default:
+            LOG_ERROR("Invalid packet type: 0x%02x", packet->type);
+            break;
+    }
 
     return RET_OK;
 }
@@ -500,9 +530,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
-  /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 
 }
 
@@ -562,18 +589,22 @@ void StartDefaultTask(void *argument)
           "Failed to initialize commander");
 
   LOG_INFO("Initialization Complete.");
-  uint8_t data[] = { 0x00, 0x01, 0xab };
-  Commander_Transmit(&com, (Commander_Packet_t *) data);
 
   /* Infinite loop */
   for(;;)
   {
-      LaserArray_FadeBrightness(&la, 30, 63, 1000);
-      LaserArray_FadeBrightness(&la, 31, 0, 1000);
+      /* LaserArray_FadeBrightness(&la, 22, 63, 1000);
+      LaserArray_FadeBrightness(&la, 23, 0, 1000);
       osDelay(1000);
 
-      LaserArray_FadeBrightness(&la, 30, 0, 1000);
-      LaserArray_FadeBrightness(&la, 31, 63, 1000);
+      LaserArray_FadeBrightness(&la, 22, 0, 1000);
+      LaserArray_FadeBrightness(&la, 23, 63, 1000);
+      osDelay(1000); */
+
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
+      osDelay(1000);
+
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
       osDelay(1000);
   }
   /* USER CODE END 5 */
