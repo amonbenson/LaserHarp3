@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "usbd_midi_if.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -27,6 +26,8 @@
 #include "logging.h"
 #include "laser_array.h"
 #include "commander.h"
+
+#include "usbd_hid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,6 +59,10 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 LaserArray_t la;
 Commander_t com;
+
+extern USBD_HandleTypeDef hUsbDeviceFS;
+uint8_t midi_noteon[] = { 0x09, 0x90, 0x40, 0x7F };
+uint8_t midi_noteoff[] = { 0x08, 0x80, 0x40, 0x7F };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -205,13 +210,21 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint8_t noteon[] = { 0x08, 0x90, 0x3C, 0x40 };
-  //uint8_t noteoff[] = { 0x08, 0x80, 0x3C, 0x00 };
-  int i = 0;
-  int j = 0;
+  //int i = 0;
+  //int j = 0;
   while (1)
   {
-      if (i >= 1000000) {
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
+      while (((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == HID_BUSY) {}
+      USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &midi_noteon, sizeof(midi_noteon));
+      HAL_Delay(500);
+
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
+      while (((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == HID_BUSY) {}
+      USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &midi_noteoff, sizeof(midi_noteoff));
+      HAL_Delay(500);
+
+      /* if (i >= 1000000) {
           MIDI_DataTx(noteon, sizeof(noteon));
           if (j == 0) {
               Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
@@ -222,7 +235,7 @@ int main(void)
           i = 0;
       } else {
           i++;
-      }
+      } */
       //USBD_MIDI_SendPacket();
 
       //Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
