@@ -27,7 +27,8 @@
 #include "usbd_audio_if.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "usbd_midi.h"
+#include "usbd_midi_if.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN PV */
@@ -86,6 +87,11 @@ void MX_USB_DEVICE_Init(void)
   }
 
   /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
+
+  // register midi device and restart usb
+  USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI);
+  USBD_MIDI_RegisterInterface(&hUsbDeviceFS, &USBD_Interface_fops_FS);
+  USBD_Start(&hUsbDeviceFS);
 
   /* USER CODE END USB_DEVICE_Init_PostTreatment */
 }

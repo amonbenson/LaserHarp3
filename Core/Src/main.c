@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
+#include "usbd_midi_if.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -134,6 +135,11 @@ ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
     return RET_OK;
 }
 
+uint16_t MIDI_DataRx(uint8_t *msg, uint16_t length) {
+    LOG_INFO("USB Midi In (%u) bytes.", length);
+    return 0;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -199,13 +205,33 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t noteon[] = { 0x08, 0x90, 0x3C, 0x40 };
+  //uint8_t noteoff[] = { 0x08, 0x80, 0x3C, 0x00 };
+  int i = 0;
+  int j = 0;
   while (1)
   {
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
-      HAL_Delay(1000);
+      if (i >= 1000000) {
+          MIDI_DataTx(noteon, sizeof(noteon));
+          if (j == 0) {
+              Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
+          } else {
+              Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
+          }
+          j = !j;
+          i = 0;
+      } else {
+          i++;
+      }
+      //USBD_MIDI_SendPacket();
 
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
-      HAL_Delay(1000);
+      //Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
+      //MIDI_DataTx(noteon, sizeof(noteon));
+      //HAL_Delay(1000);
+
+      //Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
+      //MIDI_DataTx(noteoff, sizeof(noteoff));
+      //HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
