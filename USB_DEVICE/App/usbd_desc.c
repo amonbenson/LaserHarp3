@@ -67,8 +67,8 @@
 #define USBD_MANUFACTURER_STRING     "Schlegel Flegel"
 #define USBD_PID_FS     0xC0B0
 #define USBD_PRODUCT_STRING_FS     "Laser Harp"
-#define USBD_CONFIGURATION_STRING_FS     "HID Config"
-#define USBD_INTERFACE_STRING_FS     "HID Interface"
+#define USBD_CONFIGURATION_STRING_FS     "MIDI Config"
+#define USBD_INTERFACE_STRING_FS     "MIDI Interface"
 
 /* USER CODE BEGIN PRIVATE_DEFINES */
 

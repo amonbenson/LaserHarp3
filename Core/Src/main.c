@@ -139,11 +139,6 @@ ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
     return RET_OK;
 }
 
-uint16_t MIDI_DataRx(uint8_t *msg, uint16_t length) {
-    LOG_INFO("USB Midi In (%u) bytes.", length);
-    return 0;
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -217,8 +212,6 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //int i = 0;
-  //int j = 0;
   while (1)
   {
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
@@ -228,28 +221,6 @@ int main(void)
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
       UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x80, 60, 0 }, 3);
       HAL_Delay(500);
-
-      /* if (i >= 1000000) {
-          MIDI_DataTx(noteon, sizeof(noteon));
-          if (j == 0) {
-              Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
-          } else {
-              Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
-          }
-          j = !j;
-          i = 0;
-      } else {
-          i++;
-      } */
-      //USBD_MIDI_SendPacket();
-
-      //Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
-      //MIDI_DataTx(noteon, sizeof(noteon));
-      //HAL_Delay(1000);
-
-      //Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
-      //MIDI_DataTx(noteoff, sizeof(noteoff));
-      //HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

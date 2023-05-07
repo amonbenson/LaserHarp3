@@ -126,8 +126,8 @@
     } \
 } while (0)
 
-#define RETURN_ON_FALSE(expression, error_code, message, ...) do { \
-    if (unlikely(!(expression))) { \
+#define RETURN_ON_FALSE(x, error_code, message, ...) do { \
+    if (unlikely(!(x))) { \
         __LOG_ERROR_CODE((error_code), message, ## __VA_ARGS__); \
         return (error_code); \
     } \
@@ -142,8 +142,8 @@
     } \
 } while (0)
 
-#define GOTO_EXIT_ON_FALSE(expression, error_code, message, ...) do { \
-    if (unlikely(!(expression))) { \
+#define GOTO_EXIT_ON_FALSE(x, error_code, message, ...) do { \
+    if (unlikely(!(x))) { \
         __LOG_ERROR_CODE((error_code), message, ## __VA_ARGS__); \
         LOG_RETURN_VARIABLE = (error_code); \
         goto exit; \
@@ -159,7 +159,7 @@
 } while (0)
 
 #define HALT_ON_FALSE(x, error_code, message, ...) do { \
-    if (unlikely(!(expression))) { \
+    if (unlikely(!(x))) { \
         __LOG_ERROR_CODE((error_code), message, ## __VA_ARGS__); \
         LOG_HALT_PROCEDURE(); \
     } \
