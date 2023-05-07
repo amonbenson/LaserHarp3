@@ -27,7 +27,7 @@
 #include "laser_array.h"
 #include "commander.h"
 
-#include "usbd_hid.h"
+#include "usbmidi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,12 +57,11 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+UsbMidi_t usbmidi;
 LaserArray_t la;
 Commander_t com;
-
-extern USBD_HandleTypeDef hUsbDeviceFS;
-uint8_t midi_noteon[] = { 0x09, 0x90, 0x40, 0x7F };
-uint8_t midi_noteoff[] = { 0x08, 0x80, 0x40, 0x7F };
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -185,6 +184,14 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // init usbmidi
+  LOG_INFO("Initializing midi ...");
+  const UsbMidi_Config_t usbmidi_config = {
+      .hUsbDeviceFS = &hUsbDeviceFS
+  };
+  HALT_ON_ERROR(UsbMidi_Init(&usbmidi, &usbmidi_config),
+      "Failed to initialize usbmidi.");
+
   // init laser array
   LOG_INFO("Initializing laser array ...");
   const LaserArray_Config_t la_config = {
@@ -215,13 +222,11 @@ int main(void)
   while (1)
   {
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
-      while (((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == HID_BUSY) {}
-      USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &midi_noteon, sizeof(midi_noteon));
+      UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
       HAL_Delay(500);
 
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
-      while (((USBD_HID_HandleTypeDef *) hUsbDeviceFS.pClassData)->state == HID_BUSY) {}
-      USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &midi_noteoff, sizeof(midi_noteoff));
+      UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x80, 60, 0 }, 3);
       HAL_Delay(500);
 
       /* if (i >= 1000000) {

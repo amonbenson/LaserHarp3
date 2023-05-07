@@ -18,8 +18,8 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __USB_HID_H
-#define __USB_HID_H
+#ifndef __USB_MIDI_H
+#define __USB_MIDI_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,32 +41,32 @@ extern "C" {
 /** @defgroup USBD_HID_Exported_Defines
   * @{
   */
-#define HID_EPIN_ADDR                 0x81U
-#define HID_EPIN_SIZE                 0x04U
+#define MIDI_EPIN_ADDR                 0x81U
+#define MIDI_EPIN_SIZE                 0x04U
 
-#define USB_HID_CONFIG_DESC_SIZ       34U
-#define USB_HID_DESC_SIZ              9U
+#define USB_MIDI_CONFIG_DESC_SIZ       34U
+#define USB_MIDI_DESC_SIZ              9U
 #define USB_MIDI_MOUSE_REPORT_DESC_SIZE    74U
 
-#define HID_DESCRIPTOR_TYPE           0x21U
-#define HID_REPORT_DESC               0x22U
+#define MIDI_DESCRIPTOR_TYPE           0x21U
+#define MIDI_REPORT_DESC               0x22U
 
-#ifndef HID_HS_BINTERVAL
-#define HID_HS_BINTERVAL            0x07U
-#endif /* HID_HS_BINTERVAL */
+#ifndef MIDI_HS_BINTERVAL
+#define MIDI_HS_BINTERVAL            0x07U
+#endif /* MIDI_HS_BINTERVAL */
 
-#ifndef HID_FS_BINTERVAL
-#define HID_FS_BINTERVAL            0x0AU
+#ifndef MIDI_FS_BINTERVAL
+#define MIDI_FS_BINTERVAL            0x0AU
 #endif /* HID_FS_BINTERVAL */
 
-#define HID_REQ_SET_PROTOCOL          0x0BU
-#define HID_REQ_GET_PROTOCOL          0x03U
+#define MIDI_REQ_SET_PROTOCOL          0x0BU
+#define MIDI_REQ_GET_PROTOCOL          0x03U
 
-#define HID_REQ_SET_IDLE              0x0AU
-#define HID_REQ_GET_IDLE              0x02U
+#define MIDI_REQ_SET_IDLE              0x0AU
+#define MIDI_REQ_GET_IDLE              0x02U
 
-#define HID_REQ_SET_REPORT            0x09U
-#define HID_REQ_GET_REPORT            0x01U
+#define MIDI_REQ_SET_REPORT            0x09U
+#define MIDI_REQ_GET_REPORT            0x01U
 /**
   * @}
   */
@@ -77,10 +77,10 @@ extern "C" {
   */
 typedef enum
 {
-  HID_IDLE = 0,
-  HID_BUSY,
+  USBD_MIDI_IDLE = 0,
+  USBD_MIDI_BUSY,
 }
-HID_StateTypeDef;
+USBD_MIDI_StateTypeDef;
 
 
 typedef struct
@@ -88,9 +88,9 @@ typedef struct
   uint32_t             Protocol;
   uint32_t             IdleState;
   uint32_t             AltSetting;
-  HID_StateTypeDef     state;
+  USBD_MIDI_StateTypeDef     state;
 }
-USBD_HID_HandleTypeDef;
+USBD_MIDI_HandleTypeDef;
 /**
   * @}
   */
@@ -109,8 +109,8 @@ USBD_HID_HandleTypeDef;
   * @{
   */
 
-extern USBD_ClassTypeDef  USBD_HID;
-#define USBD_HID_CLASS    &USBD_HID
+extern USBD_ClassTypeDef  USBD_MIDI;
+#define USBD_MIDI_CLASS    &USBD_MIDI
 /**
   * @}
   */
@@ -118,11 +118,11 @@ extern USBD_ClassTypeDef  USBD_HID;
 /** @defgroup USB_CORE_Exported_Functions
   * @{
   */
-uint8_t USBD_HID_SendReport(USBD_HandleTypeDef *pdev,
+uint8_t USBD_MIDI_SendReport(USBD_HandleTypeDef *pdev,
                             uint8_t *report,
                             uint16_t len);
 
-uint32_t USBD_HID_GetPollingInterval(USBD_HandleTypeDef *pdev);
+uint32_t USBD_MIDI_GetPollingInterval(USBD_HandleTypeDef *pdev);
 
 /**
   * @}

@@ -26,7 +26,7 @@
 #include "usbd_hid.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "usbd_midi.h"
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN PV */
@@ -81,6 +81,10 @@ void MX_USB_DEVICE_Init(void)
   }
 
   /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
+
+  // register midi class and restart
+  USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI);
+  USBD_Start(&hUsbDeviceFS);
 
   /* USER CODE END USB_DEVICE_Init_PostTreatment */
 }
