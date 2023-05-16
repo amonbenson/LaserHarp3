@@ -19,9 +19,9 @@ typedef struct {
 } DinMidi_t;
 
 
-ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *data, uint16_t length);
+ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *message, uint16_t length);
 
 ret_t DinMidi_Init(DinMidi_t *dinmidi, const DinMidi_Config_t *config);
-ret_t DinMidi_Transmit(DinMidi_t *dinmidi, uint8_t *data, uint16_t length);
+ret_t DinMidi_Transmit(DinMidi_t *dinmidi, uint8_t *message, uint16_t length);
 
 ret_t DinMidi_UARTEx_RxEventHandler(DinMidi_t *dinmidi, UART_HandleTypeDef *huart, uint16_t Size);

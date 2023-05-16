@@ -24,10 +24,10 @@ typedef struct {
 } UsbMidi_t;
 
 
-ret_t UsbMidi_ReceiveCallback(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length);
+ret_t UsbMidi_ReceiveCallback(UsbMidi_t *usbmidi, uint8_t *message, uint16_t length);
 
 ret_t UsbMidi_Init(UsbMidi_t *usbmidi, const UsbMidi_Config_t *config);
-ret_t UsbMidi_Transmit(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length);
+ret_t UsbMidi_Transmit(UsbMidi_t *usbmidi, uint8_t *message, uint16_t length);
 bool UsbMidi_IsConnected(UsbMidi_t *usbmidi);
 
 ret_t UsbMidi_DataInHandler(UsbMidi_t *usbmidi, uint8_t *usb_rx_buffer, uint8_t usb_rx_buffer_length);

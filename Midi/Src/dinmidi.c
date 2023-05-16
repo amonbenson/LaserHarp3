@@ -3,7 +3,7 @@
 #include "string.h"
 
 
-__weak ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *data, uint16_t length) {
+__weak ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *message, uint16_t length) {
     return RET_OK;
 }
 

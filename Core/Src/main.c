@@ -25,11 +25,9 @@
 #include "stdlib.h"
 #include "logging.h"
 
-#include "usbmidi.h"
-#include "dinmidi.h"
+#include "midi.h"
 #include "laser_array.h"
 #include "commander.h"
-#include "eventloop.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -62,12 +60,9 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-DinMidi_t dinmidi;
-UsbMidi_t usbmidi;
+Midi_t midi;
 LaserArray_t la;
 Commander_t com;
-
-Eventloop_t el;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,43 +101,23 @@ PUTCHAR_PROTOTYPE {
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
     // invoke all uart event handlers
     Commander_UARTEx_RxEventHandler(&com, huart, Size);
-    DinMidi_UARTEx_RxEventHandler(&dinmidi, huart, Size);
+    DinMidi_UARTEx_RxEventHandler(&midi.din, huart, Size);
 }
 
 void USBD_MIDI_DataInHandler(uint8_t *usb_rx_buffer, uint8_t usb_rx_buffer_length) {
     // invoke the usb data in handler
-    UsbMidi_DataInHandler(&usbmidi, usb_rx_buffer, usb_rx_buffer_length);
+    UsbMidi_DataInHandler(&midi.usb, usb_rx_buffer, usb_rx_buffer_length);
 }
 
 ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
     // add the packet as an event
-    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) packet), "Failed to push event.");
+    LOG_INFO("Commander ReceiveCallback");
 
     return RET_OK;
 }
 
-ret_t UsbMidi_ReceiveCallback(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length) {
-    uint8_t event[64];
-    RETURN_ON_FALSE(length + 2 <= sizeof(event), RET_OUT_OF_MEMORY, "Event buffer not large enough");
-
-    event[0] = length + 2;
-    event[1] = EVENT_MIDI_IN;
-    memcpy(&event[2], data, length);
-    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) &event),
-        "Failed to push event.");
-
-    return RET_OK;
-}
-
-ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *data, uint16_t length) {
-    uint8_t event[64];
-    RETURN_ON_FALSE(length + 2 <= sizeof(event), RET_OUT_OF_MEMORY, "Event buffer not large enough");
-
-    event[0] = length + 2;
-    event[1] = EVENT_MIDI_IN;
-    memcpy(&event[2], data, length);
-    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) &event),
-        "Failed to push event.");
+ret_t Midi_ReceiveCallback(Midi_t *midi, uint8_t *message, uint16_t length) {
+    LOG_INFO("Midi ReceiveCallback");
 
     return RET_OK;
 }
@@ -188,21 +163,18 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
-  // init usbmidi
-  LOG_INFO("Initializing USB midi ...");
-  const UsbMidi_Config_t usbmidi_config = {
-      .hUsbDeviceFS = &hUsbDeviceFS
+  // init midi
+  LOG_INFO("Initializing midi ...");
+  const Midi_Config_t midi_config = {
+      .usb = {
+          .hUsbDeviceFS = &hUsbDeviceFS
+      },
+      .din = {
+          .huart = &huart3
+      }
   };
-  HALT_ON_ERROR(UsbMidi_Init(&usbmidi, &usbmidi_config),
-      "Failed to initialize usbmidi.");
-
-  // init dinmidi
-  LOG_INFO("Initializing DIN midi ...");
-  const DinMidi_Config_t dinmidi_config = {
-      .huart = &huart3
-  };
-  HALT_ON_ERROR(DinMidi_Init(&dinmidi, &dinmidi_config),
-     "Failed to initialize dinmidi.");
+  HALT_ON_ERROR(Midi_Init(&midi, &midi_config),
+      "Failed to initialize midi.");
 
   // init laser array
   LOG_INFO("Initializing laser array ...");
@@ -223,10 +195,6 @@ int main(void)
   HALT_ON_ERROR(Commander_Init(&com, &com_config),
       "Failed to initialize commander.");
 
-  LOG_INFO("Initializing event loop.");
-  HALT_ON_ERROR(EventLoop_Init(&el),
-      "Failed to initialize event loop.");
-
   LOG_INFO("Initialization complete.");
 
   /* USER CODE END 2 */
@@ -236,18 +204,16 @@ int main(void)
   while (1)
   {
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 63 });
-      UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
-      DinMidi_Transmit(&dinmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
+      Midi_Transmit(&midi, (uint8_t []) { 0x90, 60, 127 }, 3);
       HAL_Delay(500);
 
-      EventLoop_Print(&el);
+      Commander_Update(&com);
 
       Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 0 });
-      UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x80, 60, 0 }, 3);
-      DinMidi_Transmit(&dinmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
+      Midi_Transmit(&midi, (uint8_t []) { 0x80, 60, 0 }, 3);
       HAL_Delay(500);
 
-      EventLoop_Print(&el);
+      Commander_Update(&com);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
