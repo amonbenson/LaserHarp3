@@ -24,10 +24,12 @@
 /* USER CODE BEGIN Includes */
 #include "stdlib.h"
 #include "logging.h"
-#include "laser_array.h"
-#include "commander.h"
 
 #include "usbmidi.h"
+#include "dinmidi.h"
+#include "laser_array.h"
+#include "commander.h"
+#include "eventloop.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,6 +49,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi2;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
@@ -59,9 +62,12 @@ UART_HandleTypeDef huart3;
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
+DinMidi_t dinmidi;
 UsbMidi_t usbmidi;
 LaserArray_t la;
 Commander_t com;
+
+Eventloop_t el;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,6 +80,7 @@ static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART3_UART_Init(void);
+static void MX_SPI2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -97,44 +104,45 @@ PUTCHAR_PROTOTYPE {
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-    // invoke the comander event handler
+    // invoke all uart event handlers
     Commander_UARTEx_RxEventHandler(&com, huart, Size);
+    DinMidi_UARTEx_RxEventHandler(&dinmidi, huart, Size);
 }
 
-static ret_t ValidateLength(uint8_t actual_length, uint8_t expected_length) {
-    if (actual_length != expected_length) {
-        LOG_ERROR("Invalid packet length %u (expected %u)", actual_length, expected_length);
-        return RET_INVALID_SIZE;
-    }
+void USBD_MIDI_DataInHandler(uint8_t *usb_rx_buffer, uint8_t usb_rx_buffer_length) {
+    // invoke the usb data in handler
+    UsbMidi_DataInHandler(&usbmidi, usb_rx_buffer, usb_rx_buffer_length);
+}
+
+ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
+    // add the packet as an event
+    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) packet), "Failed to push event.");
 
     return RET_OK;
 }
 
-ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
-    switch (packet->type) {
-        case COM_LED_SET_ALL:
-            // set the brightness of all leds to the same value
-            RETURN_ON_ERROR(ValidateLength(packet->length, 1), "");
-            for (uint8_t i = 0; i < LA_NUM_DIODES; i++) {
-                RETURN_ON_ERROR(LaserArray_SetBrightness(&la, i, packet->data[0]), "");
-            }
-            break;
-        case COM_LED_SET_EACH:
-            // set the brightness of each led one after another
-            RETURN_ON_ERROR(ValidateLength(packet->length, LA_NUM_DIODES), "");
-            for (uint8_t i = 0; i < LA_NUM_DIODES; i++) {
-                RETURN_ON_ERROR(LaserArray_SetBrightness(&la, i, packet->data[i]), "");
-            }
-            break;
-        case COM_LED_SET_SINGLE:
-            // set a single led's brightness
-            RETURN_ON_ERROR(ValidateLength(packet->length, 2), "");
-            RETURN_ON_ERROR(LaserArray_SetBrightness(&la, packet->data[0], packet->data[1]), "");
-            break;
-        default:
-            LOG_ERROR("Invalid packet type: 0x%02x", packet->type);
-            break;
-    }
+ret_t UsbMidi_ReceiveCallback(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length) {
+    uint8_t event[64];
+    RETURN_ON_FALSE(length + 2 <= sizeof(event), RET_OUT_OF_MEMORY, "Event buffer not large enough");
+
+    event[0] = length + 2;
+    event[1] = EVENT_MIDI_IN;
+    memcpy(&event[2], data, length);
+    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) &event),
+        "Failed to push event.");
+
+    return RET_OK;
+}
+
+ret_t DinMidi_ReceiveCallback(DinMidi_t *dinmidi, uint8_t *data, uint16_t length) {
+    uint8_t event[64];
+    RETURN_ON_FALSE(length + 2 <= sizeof(event), RET_OUT_OF_MEMORY, "Event buffer not large enough");
+
+    event[0] = length + 2;
+    event[1] = EVENT_MIDI_IN;
+    memcpy(&event[2], data, length);
+    RETURN_ON_ERROR(EventLoop_Push(&el, (Event_t *) &event),
+        "Failed to push event.");
 
     return RET_OK;
 }
@@ -177,15 +185,24 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
   // init usbmidi
-  LOG_INFO("Initializing midi ...");
+  LOG_INFO("Initializing USB midi ...");
   const UsbMidi_Config_t usbmidi_config = {
       .hUsbDeviceFS = &hUsbDeviceFS
   };
   HALT_ON_ERROR(UsbMidi_Init(&usbmidi, &usbmidi_config),
       "Failed to initialize usbmidi.");
+
+  // init dinmidi
+  LOG_INFO("Initializing DIN midi ...");
+  const DinMidi_Config_t dinmidi_config = {
+      .huart = &huart3
+  };
+  HALT_ON_ERROR(DinMidi_Init(&dinmidi, &dinmidi_config),
+     "Failed to initialize dinmidi.");
 
   // init laser array
   LOG_INFO("Initializing laser array ...");
@@ -206,6 +223,10 @@ int main(void)
   HALT_ON_ERROR(Commander_Init(&com, &com_config),
       "Failed to initialize commander.");
 
+  LOG_INFO("Initializing event loop.");
+  HALT_ON_ERROR(EventLoop_Init(&el),
+      "Failed to initialize event loop.");
+
   LOG_INFO("Initialization complete.");
 
   /* USER CODE END 2 */
@@ -214,13 +235,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 63 });
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 63 });
       UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
+      DinMidi_Transmit(&dinmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
       HAL_Delay(500);
 
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 0x10, 1, 0 });
+      EventLoop_Print(&el);
+
+      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 0 });
       UsbMidi_Transmit(&usbmidi, (uint8_t []) { 0x80, 60, 0 }, 3);
+      DinMidi_Transmit(&dinmidi, (uint8_t []) { 0x90, 60, 127 }, 3);
       HAL_Delay(500);
+
+      EventLoop_Print(&el);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -309,6 +336,44 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 2 */
 
   /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
+
+  /* USER CODE END SPI2_Init 2 */
 
 }
 

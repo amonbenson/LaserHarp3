@@ -77,14 +77,14 @@ void Error_Handler(void);
 #define MIDI_TX_GPIO_Port GPIOB
 #define MIDI_RX_Pin GPIO_PIN_11
 #define MIDI_RX_GPIO_Port GPIOB
+#define COM_TX_Pin GPIO_PIN_9
+#define COM_TX_GPIO_Port GPIOA
+#define COM_RX_Pin GPIO_PIN_10
+#define COM_RX_GPIO_Port GPIOA
 #define SWDIO_Pin GPIO_PIN_13
 #define SWDIO_GPIO_Port GPIOA
 #define SWCLK_Pin GPIO_PIN_14
 #define SWCLK_GPIO_Port GPIOA
-#define COM_TX_Pin GPIO_PIN_6
-#define COM_TX_GPIO_Port GPIOB
-#define COM_RX_Pin GPIO_PIN_7
-#define COM_RX_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

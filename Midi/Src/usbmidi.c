@@ -1,6 +1,12 @@
 #include "usbmidi.h"
 #include "usbd_midi.h"
 #include "usbd_def.h"
+#include "stm32f1xx_hal.h"
+
+
+__weak ret_t UsbMidi_ReceiveCallback(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length) {
+    return RET_OK;
+}
 
 
 ret_t UsbMidi_Init(UsbMidi_t *usbmidi, const UsbMidi_Config_t *config) {
@@ -25,7 +31,7 @@ static ret_t UsbMidi_CreatePacket(UsbMidi_Packet_t *packet, uint8_t cn, uint8_t 
             // set the cin
             packet->cn_cin |= command >> 4;
 
-            // validate the length
+            // validate the length and store the data
             RETURN_ON_FALSE(length >= 3, RET_INVALID_SIZE, "Remaining data must be at least 3 bytes long.");
             memcpy(&packet->data, data, 3);
             break;
@@ -49,12 +55,29 @@ ret_t UsbMidi_Transmit(UsbMidi_t *usbmidi, uint8_t *data, uint16_t length) {
     }
 
     // wait for idle state and send the packet
-    while (USBD_MIDI_GetState(usbmidi->config.hUsbDeviceFS) != MIDI_IDLE) {}
     USBD_MIDI_SendReport(usbmidi->config.hUsbDeviceFS, (uint8_t *) &packet, sizeof(UsbMidi_Packet_t));
+    while (USBD_MIDI_GetState(usbmidi->config.hUsbDeviceFS) != MIDI_IDLE) {}
 
     return RET_OK;
 }
 
 bool UsbMidi_IsConnected(UsbMidi_t *usbmidi) {
     return usbmidi->config.hUsbDeviceFS->dev_state == USBD_STATE_CONFIGURED;
+}
+
+ret_t UsbMidi_DataInHandler(UsbMidi_t *usbmidi, uint8_t *usb_rx_buffer, uint8_t usb_rx_buffer_length) {
+    while (usb_rx_buffer_length > 0 && *usb_rx_buffer != 0x00) {
+        // get the cn and cin numbers
+        //uint8_t cn = usb_rx_buffer[0] >> 4;
+        //uint8_t cin = usb_rx_buffer[0] & 0x0F;
+
+        // invoke the callback
+        RETURN_ON_ERROR(UsbMidi_ReceiveCallback(usbmidi, &usb_rx_buffer[1], 3), "RX Callback failed");
+
+        // select the next packet
+        usb_rx_buffer += 4;
+        usb_rx_buffer_length -= 4;
+    }
+
+    return RET_OK;
 }
