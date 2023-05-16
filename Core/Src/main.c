@@ -109,15 +109,17 @@ void USBD_MIDI_DataInHandler(uint8_t *usb_rx_buffer, uint8_t usb_rx_buffer_lengt
     UsbMidi_DataInHandler(&midi.usb, usb_rx_buffer, usb_rx_buffer_length);
 }
 
-ret_t Commander_ReceiveCallback(Commander_t *com, Commander_Packet_t *packet) {
+ret_t Commander_ReceiveCallback(Commander_t *com, uint8_t *message, uint16_t length) {
     // add the packet as an event
-    LOG_INFO("Commander ReceiveCallback");
+    LOG_INFO("Commander Received");
 
     return RET_OK;
 }
 
 ret_t Midi_ReceiveCallback(Midi_t *midi, uint8_t *message, uint16_t length) {
-    LOG_INFO("Midi ReceiveCallback");
+    // forward to commander
+    //Commander_Transmit(&com, message, length);
+    LOG_INFO("Midi In!");
 
     return RET_OK;
 }
@@ -203,16 +205,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 63 });
-      Midi_Transmit(&midi, (uint8_t []) { 0x90, 60, 127 }, 3);
-      HAL_Delay(500);
-
-      Commander_Update(&com);
-
-      Commander_Transmit(&com, (Commander_Packet_t *) (uint8_t []) { 1, 0x20, 0 });
-      Midi_Transmit(&midi, (uint8_t []) { 0x80, 60, 0 }, 3);
-      HAL_Delay(500);
-
       Commander_Update(&com);
     /* USER CODE END WHILE */
 
